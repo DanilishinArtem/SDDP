@@ -3,15 +3,16 @@ from scipy import stats
 import numbers
 from collections import abc
 import gurobipy
+import torch
 
 
 def compute_CI(array, percentile):
     """Compute percentile% CI for the given array."""
     if len(array) == 1:
         raise NotImplementedError
-    mean = numpy.mean(array)
+    mean = torch.mean(array)
     # standard error
-    se = numpy.std(array, ddof=1) / numpy.sqrt(len(array))
+    se = torch.std(array, ddof=1) / torch.sqrt(len(array))
     # critical value
     cv = (
         stats.t.ppf(1 -(1-percentile/100)/2, len(array)-1)
@@ -47,16 +48,17 @@ def check_random_state(seed):
         If int, return a new RandomState instance with seed.
         Otherwise raise ValueError.
     """
-    if seed in [None, numpy.random]:
-        return numpy.random.mtrand._rand
-    if isinstance(seed, (numbers.Integral, numpy.integer)):
-        return numpy.random.RandomState(seed)
-    if isinstance(seed, numpy.random.RandomState):
+    if seed in [None, torch.randn]:
+        return torch.randn
+    elif isinstance(seed, int):
+        return torch.manual_seed(seed)
+    elif isinstance(seed, torch.Generator):
         return seed
-    raise ValueError(
-        "{%r} cannot be used to seed a numpy.random.RandomState instance"
+    else:
+        raise ValueError(
+            "{} cannot be used to seed a torch.random number generator"
             .format(seed)
-    )
+        )
 
 def check_Markov_states_and_transition_matrix(
         Markov_states,
@@ -78,16 +80,16 @@ def check_Markov_states_and_transition_matrix(
         )
     a = 1
     for t, item in enumerate(transition_matrix):
-        if a != numpy.array(item).shape[0]:
+        if a != torch.Tensor(item).shape[0]:
             raise ValueError("Invalid transition_matrix!")
         else:
-            a = numpy.array(item).shape[1]
+            a = torch.Tensor(item).shape[1]
             n_Markov_states.append(a)
         for single in item:
             if round(sum(single),4) != 1:
                 raise ValueError("Probability does not sum to one!")
     for t, item in enumerate(Markov_states):
-        shape = numpy.array(item).shape
+        shape = torch.Tensor(item).shape
         if shape[0] != n_Markov_states[t]:
             raise ValueError(
                 "The dimension of Markov_states is not compatible with \
@@ -96,18 +98,18 @@ def check_Markov_states_and_transition_matrix(
         dim_Markov_states.append(shape[1])
     return dim_Markov_states, n_Markov_states
 
-def check_Markovian_uncertainty(Markovian_uncertainty, T):
+def check_Markovian_uncertainty(Markovian_uncertainty, size, T):
     """Check Markovian uncertainty is in the right form. Return
     the dimension of MC."""
     dim_Markov_states = []
     if not callable(Markovian_uncertainty):
         raise ValueError("Markovian uncertainty must be callable!")
     try:
-        initial = Markovian_uncertainty(numpy.random, 2)
+        initial = Markovian_uncertainty(torch.distributions, size, T)
     except TypeError:
         raise TypeError("Sample path generator should always take "
             + "numpy.random.RandomState and size as its arguments!")
-    if not isinstance(initial, numpy.ndarray) or initial.ndim != 3:
+    if not isinstance(initial, torch.Tensor) or initial.ndim != 3:
         raise ValueError("Sample path generator should always return a three "
             + "dimensional numpy array!")
     if initial.shape[1] < T:
