@@ -26,13 +26,13 @@ def generator(random_state, size, T):
 
 
 class MarkovSampler(object):
-    def __init__(self, generator, n_Markov_states: list, n_sample_paths: int):
-        self.samples = generator(torch.distributions, n_sample_paths, len(n_Markov_states))
+    def __init__(self, generator, n_Markov_states: list, n_samples: int):
+        self.samples = generator(torch.distributions, n_samples, len(n_Markov_states))
         shape = self.samples.shape
         self.T, self.dim_Markov_states = shape[1:]
         self.n_Markov_states = n_Markov_states
         self.generator = generator
-        self.n_samples = n_sample_paths
+        self.n_samples = n_samples
         # initialize the states [1, 100, 100, 100, ...] where init state and n_states at each time step
         self.Markov_states = [None for _ in range(self.T)]
         self.Markov_states[0] = self.samples[0,0,:].reshape(1,-1)

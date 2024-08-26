@@ -80,16 +80,16 @@ def check_Markov_states_and_transition_matrix(
         )
     a = 1
     for t, item in enumerate(transition_matrix):
-        if a != torch.Tensor(item).shape[0]:
+        if a != torch.tensor(item).shape[0]:
             raise ValueError("Invalid transition_matrix!")
         else:
-            a = torch.Tensor(item).shape[1]
+            a = torch.tensor(item).shape[1]
             n_Markov_states.append(a)
         for single in item:
-            if round(sum(single),4) != 1:
+            if torch.round(torch.sum(single).float(),decimals=4) != 1:
                 raise ValueError("Probability does not sum to one!")
     for t, item in enumerate(Markov_states):
-        shape = torch.Tensor(item).shape
+        shape = torch.tensor(item).shape
         if shape[0] != n_Markov_states[t]:
             raise ValueError(
                 "The dimension of Markov_states is not compatible with \
